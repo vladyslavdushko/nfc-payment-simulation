@@ -75,7 +75,6 @@ void showUID(const String &uid) {
     indicateDenied();
   }
 
-  // Відправляємо один рядок для Python у форматі: TXN:<UID>:GRANTED|DENIED
   Serial.print("TXN:");
   Serial.print(uid);
   Serial.print(":");
