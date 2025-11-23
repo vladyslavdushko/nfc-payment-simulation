@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+ENV VITE_API_BASE=/api
 RUN npm run build
 
 # Stage 2: Serve
