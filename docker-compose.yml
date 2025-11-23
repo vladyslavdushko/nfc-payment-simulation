@@ -1,13 +1,12 @@
-version: '3.8'
-
 services:
   backend:
     build: ./back
     container_name: nfc-backend
     ports:
-      - "8443:8443"
+      - "8000:8000"
     environment:
-      - MONGO_URI=${MONGO_URI}
+      - MONGO_URI=${MONGO_URI:-mongodb+srv://vladyslavdusko_db_user:SM8tbv5R6zRJmvKS@payment.vrplirm.mongodb.net/}
+      - CI=false
     restart: unless-stopped
 
   frontend:

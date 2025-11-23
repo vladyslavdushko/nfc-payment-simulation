@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pymongo
+pydantic
+requests
+pyserial
+cryptography
+

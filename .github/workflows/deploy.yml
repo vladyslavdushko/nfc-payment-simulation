@@ -38,5 +38,5 @@ jobs:
     - name: Deployment Success
       run: |
         echo "✅ Deployment completed successfully!"
-        echo "Backend: docker run -p 8443:8443 nfc-backend:latest"
+        echo "Backend: docker run -p 8000:8000 nfc-backend:latest"
         echo "Frontend: docker run -p 80:80 nfc-frontend:latest"
