@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchStats, type Stats } from "../api";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend, TimeScale } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend } from "chart.js";
 import { Line } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
@@ -16,8 +16,9 @@ export function StatsChart() {
       try {
         const s = await fetchStats(24);
         if (!cancelled) setStats(s);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Error");
+      } catch (e: unknown) {
+        const err = e as Error;
+        if (!cancelled) setError(err?.message ?? "Error");
       }
     }
     load();

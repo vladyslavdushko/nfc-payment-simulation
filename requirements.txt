@@ -1,0 +1,12 @@
+cd "C:\Users\admin\Documents\University\Master\IoT architecture\Lab5\Code"
+
+@'
+fastapi
+uvicorn
+pymongo
+requests
+pyserial
+cryptography
+pytest
+pylint
+'@ | Set-Content -Encoding UTF8 requirements.txt

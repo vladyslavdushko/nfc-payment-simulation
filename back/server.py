@@ -1,10 +1,11 @@
+"""FastAPI backend for receiving NFC transactions and serving dashboard data."""
+import time
+import math
+from typing import Optional, Literal, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, List, Dict, Any
 from pymongo import MongoClient
-import time
-import math
 
 # MongoDB connection
 MONGO_URI = "mongodb+srv://vladyslavdusko_db_user:SM8tbv5R6zRJmvKS@payment.vrplirm.mongodb.net/"
@@ -30,36 +31,41 @@ app.add_middleware(
 
 
 class TransactionIn(BaseModel):
+    """Incoming transaction payload."""
     uid: str = Field(min_length=1)
     status: Literal["GRANTED", "DENIED", "granted", "denied"]
     timestamp: Optional[float] = None  # seconds since epoch
 
 
 class TransactionOut(BaseModel):
+    """Response model for write acknowledgement."""
     ok: bool
     id: Optional[str] = None
 
 
 @app.post("/transactions", response_model=TransactionOut)
 def create_transaction(txn: TransactionIn):
+    """Insert a transaction document into MongoDB."""
     status_norm = txn.status.upper()
     ts = txn.timestamp if txn.timestamp is not None else time.time()
     doc = {"uid": txn.uid.strip(), "status": status_norm, "timestamp": float(ts)}
     try:
         res = transactions.insert_one(doc)
         return TransactionOut(ok=True, id=str(res.inserted_id))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 
 # Health check
 @app.get("/health")
 def health():
+    """Ping database and report service health."""
     try:
         client.admin.command("ping")
         return {"ok": True}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/transactions")
@@ -68,8 +74,11 @@ def list_transactions(
     skip: int = Query(0, ge=0),
     status: Optional[str] = Query(None, description="GRANTED or DENIED"),
     uid: Optional[str] = Query(None),
-    since: Optional[float] = Query(None, description="Unix seconds; return txns with timestamp >= since"),
+    since: Optional[float] = Query(
+        None, description="Unix seconds; return txns with timestamp >= since"
+    ),
 ) -> List[Dict[str, Any]]:
+    """Return recent transactions with optional filters."""
     q: Dict[str, Any] = {}
     if status:
         q["status"] = status.upper()
@@ -78,8 +87,8 @@ def list_transactions(
     if since is not None:
         try:
             q["timestamp"] = {"$gte": float(since)}
-        except Exception:
-            raise HTTPException(status_code=400, detail="Invalid 'since'")
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(status_code=400, detail="Invalid 'since'") from e
 
     try:
         cursor = transactions.find(q).sort("timestamp", -1).skip(skip).limit(limit)
@@ -88,8 +97,8 @@ def list_transactions(
             d["_id"] = str(d.get("_id"))
             out.append(d)
         return out
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/stats")
@@ -115,7 +124,9 @@ def stats(
         # produce sorted timeline
         timeline = []
         for h in sorted(buckets.keys()):
-            timeline.append({"t": h, "granted": buckets[h]["GRANTED"], "denied": buckets[h]["DENIED"]})
+            timeline.append(
+                {"t": h, "granted": buckets[h]["GRANTED"], "denied": buckets[h]["DENIED"]}
+            )
         return {"since": start, "now": now, "total": total, "timeline": timeline}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(e)) from e

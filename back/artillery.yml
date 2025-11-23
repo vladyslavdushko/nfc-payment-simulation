@@ -1,0 +1,245 @@
+# Artillery Load Testing Configuration
+# Документація: https://www.artillery.io/docs
+
+config:
+  target: "https://127.0.0.1:8443"
+  
+  # Фази навантаження
+  phases:
+    # Фаза 1: Розігрів (1 хвилина)
+    - duration: 60
+      arrivalRate: 5      # 5 користувачів за секунду
+      name: "Warm up phase"
+    
+    # Фаза 2: Збільшення навантаження (2 хвилини)
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 20          # Поступово збільшити до 20 users/sec
+      name: "Ramp up phase"
+    
+    # Фаза 3: Стабільне навантаження (3 хвилини)
+    - duration: 180
+      arrivalRate: 20     # Тримати 20 users/sec
+      name: "Sustained load phase"
+    
+    # Фаза 4: Пікове навантаження (1 хвилина)
+    - duration: 60
+      arrivalRate: 50     # Різкий спалах до 50 users/sec
+      name: "Spike phase"
+    
+    # Фаза 5: Зменшення навантаження (1 хвилина)
+    - duration: 60
+      arrivalRate: 50
+      rampTo: 5           # Поступово зменшити до 5 users/sec
+      name: "Cool down phase"
+  
+  # Налаштування для HTTPS
+  tls:
+    rejectUnauthorized: false  # Вимкнути перевірку SSL для локального тестування
+  
+  # Налаштування таймаутів
+  timeout: 10              # Таймаут запиту в секундах
+  
+  # Payload для створення транзакцій
+  payload:
+    path: "test_payloads.csv"  # Опціонально: CSV файл з даними
+  
+  # Змінні
+  variables:
+    uids:
+      - "A1B2C3D4"
+      - "CAFEBABE"
+      - "DEADBEEF"
+      - "12345678"
+    statuses:
+      - "GRANTED"
+      - "DENIED"
+  
+  # Плагіни для розширеної статистики
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+
+# Сценарії тестування
+scenarios:
+  # Сценарій 1: Типовий користувач
+  - name: "Regular User Flow"
+    weight: 70  # 70% користувачів виконують цей сценарій
+    flow:
+      # Крок 1: Перевірка здоров'я системи
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: ok
+      
+      # Крок 2: Переглянути останні транзакції
+      - get:
+          url: "/transactions?limit=50"
+          expect:
+            - statusCode: 200
+      
+      # Крок 3: Створити нову транзакцію GRANTED
+      - post:
+          url: "/transactions"
+          json:
+            uid: "{{ $randomString() }}"
+            status: "GRANTED"
+            timestamp: "{{ $timestamp }}"
+          expect:
+            - statusCode: 200
+            - hasProperty: ok
+            - hasProperty: id
+      
+      # Крок 4: Переглянути статистику
+      - get:
+          url: "/stats?hours=24"
+          expect:
+            - statusCode: 200
+            - hasProperty: total
+            - hasProperty: timeline
+      
+      # Невелика затримка між діями
+      - think: 2
+
+  # Сценарій 2: Адміністратор
+  - name: "Admin Flow"
+    weight: 15  # 15% користувачів - адміни
+    flow:
+      # Перевірка системи
+      - get:
+          url: "/health"
+      
+      # Отримати всі транзакції
+      - get:
+          url: "/transactions?limit=1000"
+          expect:
+            - statusCode: 200
+      
+      # Фільтрувати тільки GRANTED
+      - get:
+          url: "/transactions?status=GRANTED&limit=500"
+      
+      # Фільтрувати тільки DENIED
+      - get:
+          url: "/transactions?status=DENIED&limit=500"
+      
+      # Отримати статистику за різні періоди
+      - loop:
+          - get:
+              url: "/stats?hours={{ hours }}"
+          over:
+            hours: [1, 6, 12, 24]
+      
+      - think: 5
+
+  # Сценарій 3: API клієнт (створює багато транзакцій)
+  - name: "API Client - Bulk Transactions"
+    weight: 10  # 10% - автоматичні клієнти
+    flow:
+      # Масове створення транзакцій
+      - loop:
+          - post:
+              url: "/transactions"
+              json:
+                uid: "BULK_{{ $randomString() }}"
+                status: "{{ status }}"
+              capture:
+                json: "$.id"
+                as: "transaction_id"
+          over:
+            status: ["GRANTED", "DENIED", "GRANTED", "GRANTED", "DENIED"]
+      
+      # Перевірити що транзакції збережені
+      - get:
+          url: "/transactions?limit=10"
+      
+      - think: 1
+
+  # Сценарій 4: Стрес-тест (агресивні запити)
+  - name: "Stress Test"
+    weight: 5   # 5% - агресивні користувачі
+    flow:
+      # Швидка серія запитів без затримок
+      - get:
+          url: "/health"
+      - get:
+          url: "/transactions?limit=100"
+      - get:
+          url: "/stats?hours=1"
+      - post:
+          url: "/transactions"
+          json:
+            uid: "STRESS_{{ $randomString() }}"
+            status: "GRANTED"
+      - get:
+          url: "/transactions?limit=100"
+      - get:
+          url: "/stats?hours=24"
+      
+      # Без think - максимальне навантаження
+
+  # Сценарій 5: Помилкові запити (негативні тести)
+  - name: "Error Handling Test"
+    weight: 5
+    flow:
+      # Спроба створити транзакцію з пустим UID
+      - post:
+          url: "/transactions"
+          json:
+            uid: ""
+            status: "GRANTED"
+          expect:
+            - statusCode: 422
+      
+      # Спроба з невалідним статусом
+      - post:
+          url: "/transactions"
+          json:
+            uid: "TEST123"
+            status: "INVALID"
+          expect:
+            - statusCode: 422
+      
+      # Невалідні параметри в GET запитах
+      - get:
+          url: "/transactions?limit=0"
+          expect:
+            - statusCode: 422
+      
+      - get:
+          url: "/transactions?limit=5000"
+          expect:
+            - statusCode: 422
+      
+      - get:
+          url: "/stats?hours=0"
+          expect:
+            - statusCode: 422
+      
+      - think: 3
+
+# Перевірки після тестування
+after:
+  flow:
+    - log: "Load test completed successfully"
+
+# Запуск:
+#
+# 1. Простий запуск:
+#    artillery run artillery.yml
+#
+# 2. З детальним виводом:
+#    artillery run artillery.yml --output report.json
+#
+# 3. Генерація HTML звіту:
+#    artillery run artillery.yml --output report.json
+#    artillery report report.json --output report.html
+#
+# 4. Швидкий тест (менше часу):
+#    artillery quick --count 100 --num 10 https://127.0.0.1:8443/health
+#
+# 5. З override параметрами:
+#    artillery run artillery.yml --target https://production.example.com
+

@@ -1,0 +1,497 @@
+{
+  "info": {
+    "name": "NFC Payments API - Dynamic Testing",
+    "description": "Колекція тестів для динамічного тестування NFC Payments API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has ok field', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('ok');",
+              "});",
+              "",
+              "pm.test('Service is healthy', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.ok).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/health",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Create Transaction - GRANTED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Transaction created successfully', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.ok).to.eql(true);",
+              "    pm.expect(jsonData).to.have.property('id');",
+              "});",
+              "",
+              "pm.test('Response time is less than 1000ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uid\": \"A1B2C3D4\",\n  \"status\": \"GRANTED\",\n  \"timestamp\": {{$timestamp}}\n}"
+        },
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "Create Transaction - DENIED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Transaction created successfully', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.ok).to.eql(true);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uid\": \"DEADBEEF\",\n  \"status\": \"DENIED\",\n  \"timestamp\": {{$timestamp}}\n}"
+        },
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "Create Transaction - Invalid Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 422 (Validation Error)', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "pm.test('Response contains validation error', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('detail');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uid\": \"TEST1234\",\n  \"status\": \"INVALID_STATUS\"\n}"
+        },
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "Create Transaction - Empty UID",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 422 (Validation Error)', function () {",
+              "    pm.response.to.have.status(422);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uid\": \"\",\n  \"status\": \"GRANTED\"\n}"
+        },
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "List Transactions - Default",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response is an array', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Transactions have required fields', function () {",
+              "    const jsonData = pm.response.json();",
+              "    if (jsonData.length > 0) {",
+              "        pm.expect(jsonData[0]).to.have.property('_id');",
+              "        pm.expect(jsonData[0]).to.have.property('uid');",
+              "        pm.expect(jsonData[0]).to.have.property('status');",
+              "        pm.expect(jsonData[0]).to.have.property('timestamp');",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    },
+    {
+      "name": "List Transactions - With Limit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Returns at most 10 transactions', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.length).to.be.at.most(10);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions?limit=10",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Transactions - Filter by Status GRANTED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('All transactions have GRANTED status', function () {",
+              "    const jsonData = pm.response.json();",
+              "    jsonData.forEach(function(txn) {",
+              "        pm.expect(txn.status).to.eql('GRANTED');",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions?status=GRANTED",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "status",
+              "value": "GRANTED"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Transactions - Filter by Status DENIED",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('All transactions have DENIED status', function () {",
+              "    const jsonData = pm.response.json();",
+              "    jsonData.forEach(function(txn) {",
+              "        pm.expect(txn.status).to.eql('DENIED');",
+              "    });",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions?status=DENIED",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"],
+          "query": [
+            {
+              "key": "status",
+              "value": "DENIED"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Stats - Default (24h)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response has required fields', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('since');",
+              "    pm.expect(jsonData).to.have.property('now');",
+              "    pm.expect(jsonData).to.have.property('total');",
+              "    pm.expect(jsonData).to.have.property('timeline');",
+              "});",
+              "",
+              "pm.test('Total has GRANTED and DENIED counts', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.total).to.have.property('GRANTED');",
+              "    pm.expect(jsonData.total).to.have.property('DENIED');",
+              "});",
+              "",
+              "pm.test('Timeline is an array', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.timeline).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/stats",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["stats"]
+        }
+      }
+    },
+    {
+      "name": "Get Stats - 12 hours",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Time range is approximately 12 hours', function () {",
+              "    const jsonData = pm.response.json();",
+              "    const timeRange = jsonData.now - jsonData.since;",
+              "    const expectedRange = 12 * 3600;",
+              "    pm.expect(Math.abs(timeRange - expectedRange)).to.be.below(10);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://127.0.0.1:8443/stats?hours=12",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["stats"],
+          "query": [
+            {
+              "key": "hours",
+              "value": "12"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Performance Test - Multiple Transactions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Response time is acceptable (< 500ms)', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"uid\": \"{{$randomHexColor}}\",\n  \"status\": \"GRANTED\",\n  \"timestamp\": {{$timestamp}}\n}"
+        },
+        "url": {
+          "raw": "https://127.0.0.1:8443/transactions",
+          "protocol": "https",
+          "host": ["127", "0", "0", "1"],
+          "port": "8443",
+          "path": ["transactions"]
+        }
+      }
+    }
+  ]
+}
+

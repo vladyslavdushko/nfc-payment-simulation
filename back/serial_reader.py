@@ -1,6 +1,7 @@
-import serial
+"""Serial gateway that reads Arduino messages and forwards transactions over HTTPS."""
 import time
 import json
+import serial
 import requests
 
 
@@ -16,6 +17,10 @@ CERT_PATH = "cert.pem"
 REQUESTS_VERIFY = CERT_PATH if CERT_PATH is not None else True
 
 
+# Parser state (initialized early to satisfy linters)
+_json_accum = ""
+_json_open = False
+
 ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=TIMEOUT)
 time.sleep(2.5)
 print("Listening on", COM_PORT)
@@ -26,17 +31,24 @@ def post_transaction(payload: dict) -> None:
     try:
         if DEBUG:
             print("[POST] ->", payload)
-        resp = requests.post(API_URL, json=payload, timeout=5, verify=REQUESTS_VERIFY)
+        resp = requests.post(
+            API_URL,
+            json=payload,
+            timeout=5,
+            verify=REQUESTS_VERIFY,
+        )
         if resp.status_code >= 200 and resp.status_code < 300:
             print("[POST] OK", payload)
         else:
             print(f"[POST] Failed {resp.status_code}: {resp.text}")
-    except Exception as e:
-        print("[POST] Error:", e)
+    except requests.RequestException as exc:  # pylint: disable=broad-exception-caught
+        print("[POST] Error:", exc)
 
 
-def parse_and_forward_line(line: str) -> None:
-    global _json_accum, _json_open, _pending_uid, _pending_uid_ts
+def parse_and_forward_line(raw_line: str) -> None:  # pylint: disable=redefined-outer-name
+    """Parse one incoming line, decide status if needed, and forward to API."""
+    global _json_accum, _json_open
+    line = raw_line
 
     # Ігнорувати шумові логи
     if line.startswith("Received UID:") or line.startswith("Access "):
@@ -63,8 +75,8 @@ def parse_and_forward_line(line: str) -> None:
                     print("[JSON] complete:", data_str)
                 post_transaction({"uid": uid, "status": status, "timestamp": float(ts)})
                 return
-            except Exception as e:
-                print("[PARSE] JSON-accum error:", e, "raw:", data_str)
+            except (ValueError, json.JSONDecodeError, TypeError) as exc:
+                print("[PARSE] JSON-accum error:", exc, "raw:", data_str)
                 return
         else:
             return
@@ -88,15 +100,15 @@ def parse_and_forward_line(line: str) -> None:
                 if isinstance(date_str, str) and len(date_str) > 0:
                     try:
                         ts = float(date_str)
-                    except Exception:
+                    except (ValueError, TypeError):
                         ts = time.time()
                 else:
                     ts = time.time()
             payload = {"uid": uid, "status": status, "timestamp": float(ts)}
             post_transaction(payload)
             return
-        except Exception as e:
-            print("[PARSE] JSON error:", e)
+        except (ValueError, json.JSONDecodeError, TypeError) as exc:
+            print("[PARSE] JSON error:", exc)
 
     if line.startswith("TXN:"):
         parts = line.split(":")
@@ -109,9 +121,8 @@ def parse_and_forward_line(line: str) -> None:
             }
             post_transaction(payload)
             return
-        else:
-            print("Invalid TXN format:", line)
-            return
+        print("Invalid TXN format:", line)
+        return
 
     if len(line) == 8 and all(ch in "0123456789abcdefABCDEF" for ch in line):
         status = "GRANTED" if line.upper() in {u.upper() for u in ALLOWED_UIDS} else "DENIED"
@@ -123,7 +134,12 @@ def parse_and_forward_line(line: str) -> None:
     if line.upper() in ("GRANTED", "DENIED"):
         return
 
-    if line in ("SYNC:OK", "REQSYNC") or line.startswith("LIST:") or line == "LIST:END" or line.startswith("Received UID:"):
+    if (
+        line in ("SYNC:OK", "REQSYNC")
+        or line.startswith("LIST:")
+        or line == "LIST:END"
+        or line.startswith("Received UID:")
+    ):
         return
 
     if line:
@@ -141,10 +157,6 @@ def parse_and_forward_line(line: str) -> None:
 
 
 line_buffer = ""
-_json_accum = ""
-_json_open = False
-_pending_uid = None
-_pending_uid_ts = None
 
 while True:
     try:
@@ -160,6 +172,6 @@ while True:
             else:
                 line_buffer += c
 
-    except Exception as e:
-        print("Error:", e)
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        print("Error:", exc)
         time.sleep(1)

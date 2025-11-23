@@ -14,8 +14,9 @@ export function TransactionsTable() {
       try {
         const data = await fetchTransactions(100);
         if (!cancelled) setRows(data);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Error");
+      } catch (e: unknown) {
+        const err = e as Error;
+        if (!cancelled) setError(err?.message ?? "Error");
       } finally {
         if (!cancelled) setLoading(false);
       }
