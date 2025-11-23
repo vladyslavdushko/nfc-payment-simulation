@@ -52,7 +52,7 @@ def create_transaction(txn: TransactionIn):
     try:
         res = transactions.insert_one(doc)
         return TransactionOut(ok=True, id=str(res.inserted_id))
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:  
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

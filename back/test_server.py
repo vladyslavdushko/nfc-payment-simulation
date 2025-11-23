@@ -3,11 +3,51 @@
 Запуск: pytest test_server.py -v --tb=short
 """
 import time
+import os
 import pytest
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
-from server import app, TransactionIn
+
+# Mock MongoDB перед імпортом server
+os.environ['CI'] = 'true'
+
+with patch('pymongo.MongoClient') as mock_mongo:
+    # Створюємо mock для MongoDB
+    mock_db = MagicMock()
+    mock_collection = MagicMock()
+    
+    # Налаштовуємо mock chain
+    mock_mongo.return_value.__getitem__.return_value = mock_db
+    mock_db.__getitem__.return_value = mock_collection
+    mock_mongo.return_value.admin.command.return_value = {"ok": 1}
+    
+    # Тепер імпортуємо server з замоканою MongoDB
+    from server import app, TransactionIn
+    import server
+    
+    # Замінюємо transactions collection на mock
+    server.transactions = mock_collection
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def reset_mock():
+    """Reset mock перед кожним тестом"""
+    server.transactions.reset_mock()
+    
+    # Налаштувати базові повернення для моків
+    server.transactions.insert_one.return_value = MagicMock(inserted_id="mock_id_123")
+    
+    # Mock для find() що повертає пустий список (безпечний default)
+    mock_cursor = MagicMock()
+    mock_cursor.sort.return_value = mock_cursor
+    mock_cursor.skip.return_value = mock_cursor
+    mock_cursor.limit.return_value = mock_cursor
+    mock_cursor.__iter__.return_value = iter([])  # Пустий список
+    server.transactions.find.return_value = mock_cursor
+    
+    yield
 
 
 class TestHealthEndpoint:

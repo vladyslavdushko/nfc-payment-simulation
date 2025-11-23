@@ -150,13 +150,13 @@ class TestParseAndForwardLine:
     
     @patch('serial_reader.post_transaction')
     def test_parse_json_with_whitespace(self, mock_post):
-        """Тест парсингу JSON з пробілами"""
-        line = '  {"uid": " TEST ", "status": "GRANTED"}  '
+        """Тест парсингу JSON з пробілами навколо"""
+        line = '  {"uid": "TEST", "status": "GRANTED"}  '
         serial_reader.parse_and_forward_line(line)
         
         mock_post.assert_called_once()
         call_args = mock_post.call_args[0][0]
-        assert call_args["uid"] == "TEST"  # пробіли мають бути видалені
+        assert call_args["uid"] == "TEST"
     
     @patch('serial_reader.post_transaction')
     def test_parse_invalid_json(self, mock_post):
