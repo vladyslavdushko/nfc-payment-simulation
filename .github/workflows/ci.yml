@@ -22,7 +22,7 @@ jobs:
         python-version: '3.11'
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
@@ -44,7 +44,7 @@ jobs:
         pytest -v --cov=server --cov=serial_reader --cov-report=xml --cov-report=term --timeout=30
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./back/coverage.xml
         flags: backend
@@ -100,7 +100,7 @@ jobs:
       run: npm test -- --run --coverage
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./web/dashboard/coverage/coverage-final.json
         flags: frontend
@@ -156,7 +156,7 @@ jobs:
       run: npm run build
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: frontend-build
         path: web/dashboard/dist
