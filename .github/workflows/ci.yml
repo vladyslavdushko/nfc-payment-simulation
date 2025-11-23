@@ -37,6 +37,8 @@ jobs:
     
     - name: Run PyTest
       working-directory: ./back
+      env:
+        CI: true
       run: |
         pytest -v --cov=server --cov=serial_reader --cov-report=xml --cov-report=term
     

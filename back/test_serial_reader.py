@@ -4,8 +4,14 @@
 """
 import json
 import time
+import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
+
+# Встановити CI змінну перед імпортом (якщо ще не встановлена)
+if 'CI' not in os.environ:
+    os.environ['CI'] = 'true'
+
 import serial_reader
 
 

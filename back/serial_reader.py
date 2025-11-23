@@ -1,4 +1,5 @@
 """Serial gateway that reads Arduino messages and forwards transactions over HTTPS."""
+import os
 import time
 import json
 import serial
@@ -21,9 +22,18 @@ REQUESTS_VERIFY = CERT_PATH if CERT_PATH is not None else True
 _json_accum = ""
 _json_open = False
 
-ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=TIMEOUT)
-time.sleep(2.5)
-print("Listening on", COM_PORT)
+# Ініціалізація serial порту (пропустити в CI/CD середовищі)
+ser = None
+if os.getenv('CI') != 'true':
+    try:
+        ser = serial.Serial(COM_PORT, BAUD_RATE, timeout=TIMEOUT)
+        time.sleep(2.5)
+        print("Listening on", COM_PORT)
+    except serial.SerialException as e:
+        print(f"Warning: Could not open serial port: {e}")
+        ser = None
+else:
+    print("CI/CD environment detected, skipping serial port initialization")
 
 
 def post_transaction(payload: dict) -> None:
@@ -158,20 +168,24 @@ def parse_and_forward_line(raw_line: str) -> None:  # pylint: disable=redefined-
 
 line_buffer = ""
 
-while True:
-    try:
-        if ser.in_waiting > 0:
-            c = ser.read().decode('utf-8', errors='ignore')
-            if c in '\r\n':
-                if line_buffer:
-                    line = line_buffer.strip()
-                    line_buffer = ""
-                    if DEBUG:
-                        print("[SER] RX:", repr(line))
-                    parse_and_forward_line(line)
-            else:
-                line_buffer += c
+# Main loop (тільки якщо serial порт доступний)
+if ser is not None:
+    while True:
+        try:
+            if ser.in_waiting > 0:
+                c = ser.read().decode('utf-8', errors='ignore')
+                if c in '\r\n':
+                    if line_buffer:
+                        line = line_buffer.strip()
+                        line_buffer = ""
+                        if DEBUG:
+                            print("[SER] RX:", repr(line))
+                        parse_and_forward_line(line)
+                else:
+                    line_buffer += c
 
-    except Exception as exc:  # pylint: disable=broad-exception-caught
-        print("Error:", exc)
-        time.sleep(1)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            print("Error:", exc)
+            time.sleep(1)
+else:
+    print("Serial port not available, running in test mode")
