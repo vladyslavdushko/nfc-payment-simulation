@@ -160,3 +160,22 @@ jobs:
       with:
         name: frontend-build
         path: web/dashboard/dist
+
+          # Після build-check додайте:
+  trigger-deploy:
+    name: Trigger Deployment
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, backend-lint, frontend-lint, build-check]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Trigger Deploy Workflow
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.actions.createWorkflowDispatch({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            workflow_id: 'deploy.yml',
+            ref: 'main'
+          })
