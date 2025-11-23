@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.git/
+.github/
+*.log
+.env
+.vscode/
+.idea/
+README.md
+*.test.ts
+*.test.tsx
+vitest.config.ts
+

@@ -1,0 +1,14 @@
+.git/
+.github/
+.vscode/
+.idea/
+*.md
+.gitignore
+node_modules/
+__pycache__/
+*.pyc
+dist/
+coverage/
+htmlcov/
+*.log
+
