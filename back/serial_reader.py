@@ -58,7 +58,7 @@ def post_transaction(payload: dict) -> None:
 def parse_and_forward_line(raw_line: str) -> None:  # pylint: disable=redefined-outer-name
     """Parse one incoming line, decide status if needed, and forward to API."""
     global _json_accum, _json_open
-    line = raw_line
+    line = raw_line.strip()  # Strip whitespace для коректного парсингу
 
     # Ігнорувати шумові логи
     if line.startswith("Received UID:") or line.startswith("Access "):
