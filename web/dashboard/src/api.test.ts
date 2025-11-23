@@ -20,7 +20,7 @@ describe('API Tests', () => {
         { _id: '2', uid: 'DEADBEEF', status: 'DENIED', timestamp: 1234567891 }
       ];
 
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => mockTransactions
       });
@@ -35,7 +35,7 @@ describe('API Tests', () => {
     });
 
     it('should throw error on failed fetch', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 500
       });
@@ -44,7 +44,7 @@ describe('API Tests', () => {
     });
 
     it('should use default limit if not provided', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => []
       });
@@ -53,7 +53,7 @@ describe('API Tests', () => {
       
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('limit=100'),
-        expect.any(Object)
+        expect.objectContaining({ credentials: 'include' })
       );
     });
   });
@@ -70,7 +70,7 @@ describe('API Tests', () => {
         ]
       };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStats
       });
@@ -85,7 +85,7 @@ describe('API Tests', () => {
     });
 
     it('should throw error on failed fetch', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         status: 404
       });
@@ -94,7 +94,7 @@ describe('API Tests', () => {
     });
 
     it('should use default hours if not provided', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ since: 0, now: 0, total: {}, timeline: [] })
       });
@@ -103,7 +103,7 @@ describe('API Tests', () => {
       
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('hours=24'),
-        expect.any(Object)
+        expect.objectContaining({ credentials: 'include' })
       );
     });
   });

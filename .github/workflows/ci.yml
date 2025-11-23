@@ -90,7 +90,7 @@ jobs:
     
     - name: Install dependencies
       working-directory: ./web/dashboard
-      run: npm ci
+      run: npm install
     
     - name: Run Vitest
       working-directory: ./web/dashboard
@@ -121,7 +121,7 @@ jobs:
     
     - name: Install dependencies
       working-directory: ./web/dashboard
-      run: npm ci
+      run: npm install
     
     - name: Run ESLint
       working-directory: ./web/dashboard
@@ -146,7 +146,7 @@ jobs:
     
     - name: Install dependencies
       working-directory: ./web/dashboard
-      run: npm ci
+      run: npm install
     
     - name: Build frontend
       working-directory: ./web/dashboard

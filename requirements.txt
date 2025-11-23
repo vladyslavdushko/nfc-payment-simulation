@@ -1,11 +1,7 @@
-
-@'
 fastapi
 uvicorn
 pymongo
+pydantic
 requests
 pyserial
 cryptography
-pytest
-pylint
-'@ | Set-Content -Encoding UTF8 requirements.txt

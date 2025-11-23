@@ -30,7 +30,7 @@ jobs:
     
     - name: Install Node dependencies
       working-directory: ./web/dashboard
-      run: npm ci
+      run: npm install
     
     - name: Run all tests
       run: |
