@@ -11,7 +11,11 @@ from pymongo import MongoClient
 # MongoDB connection
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://vladyslavdusko_db_user:SM8tbv5R6zRJmvKS@payment.vrplirm.mongodb.net/")
 try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    client = MongoClient(
+        MONGO_URI, 
+        serverSelectionTimeoutMS=5000,
+        tlsAllowInvalidCertificates=True  # For environments with SSL issues
+    )
     # Test connection
     client.admin.command('ping')
     print("✅ MongoDB connected successfully!")
