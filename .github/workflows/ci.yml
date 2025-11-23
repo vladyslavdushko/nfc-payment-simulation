@@ -1,0 +1,159 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Backend Testing
+  backend-tests:
+    name: Backend Tests (Python)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r back/requirements_test.txt
+    
+    - name: Run PyTest
+      working-directory: ./back
+      run: |
+        pytest -v --cov=server --cov=serial_reader --cov-report=xml --cov-report=term
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./back/coverage.xml
+        flags: backend
+        name: backend-coverage
+
+  # Job 2: Backend Linting
+  backend-lint:
+    name: Backend Linting (Pylint)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pylint
+        pip install -r requirements.txt
+    
+    - name: Run Pylint
+      working-directory: ./back
+      run: |
+        pylint server.py serial_reader.py --exit-zero
+
+  # Job 3: Frontend Testing
+  frontend-tests:
+    name: Frontend Tests (Vitest)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: web/dashboard/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./web/dashboard
+      run: npm ci
+    
+    - name: Run Vitest
+      working-directory: ./web/dashboard
+      run: npm test -- --run --coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./web/dashboard/coverage/coverage-final.json
+        flags: frontend
+        name: frontend-coverage
+
+  # Job 4: Frontend Linting
+  frontend-lint:
+    name: Frontend Linting (ESLint)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: web/dashboard/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./web/dashboard
+      run: npm ci
+    
+    - name: Run ESLint
+      working-directory: ./web/dashboard
+      run: npm run lint
+
+  # Job 5: Build Check
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: web/dashboard/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./web/dashboard
+      run: npm ci
+    
+    - name: Build frontend
+      working-directory: ./web/dashboard
+      run: npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: web/dashboard/dist
