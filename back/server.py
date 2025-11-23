@@ -2,6 +2,7 @@
 import os
 import time
 import math
+import certifi
 from typing import Optional, Literal, List, Dict, Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +15,7 @@ try:
     client = MongoClient(
         MONGO_URI, 
         serverSelectionTimeoutMS=5000,
-        tlsAllowInvalidCertificates=True  # For environments with SSL issues
+        tlsCAFile=certifi.where()  # Use certifi for SSL certificates
     )
     # Test connection
     client.admin.command('ping')
